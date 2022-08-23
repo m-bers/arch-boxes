@@ -83,12 +83,12 @@ test-basic-qemu:
   tags:
     - fast-single-thread
   variables:
-    SSHPASS: arch
+    SSHPASS: archie
   before_script:
     - pacman -Syu --needed --noconfirm qemu-headless sshpass
   script:
     - qemu-system-x86_64 -m 512 -net nic -net user,hostfwd=tcp::2222-:22 -drive file=$(ls output/Arch-Linux-x86_64-basic-*.qcow2),if=virtio -nographic &
-    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no arch@localhost -p 2222 sudo true; do sleep 1; done"
+    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no archie@localhost -p 2222 sudo true; do sleep 1; done"
 
 test-cloudimg-qemu:
   stage: test
@@ -121,9 +121,9 @@ test-cloudimg-qemu:
     - cat user-data meta-data
     - genisoimage -output seed.iso -volid cidata -joliet -rock user-data meta-data
     - qemu-system-x86_64 -m 512 -net nic -net user,hostfwd=tcp::2222-:22 -drive file=$(ls output/Arch-Linux-x86_64-cloudimg-*.qcow2),if=virtio -drive file=seed.iso,if=virtio -nographic &    
-    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no arch@localhost -p 2222 true; do sleep 1; done"
-    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no arch@localhost -p 2222 pacman -Q bat tmux tree; do sleep 1; done"
-    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no arch@localhost -p 2222 test -f /runcmd_successful ; do sleep 1; done"
+    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no archie@localhost -p 2222 true; do sleep 1; done"
+    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no archie@localhost -p 2222 pacman -Q bat tmux tree; do sleep 1; done"
+    - timeout 15m sh -c "while ! sshpass -e ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no archie@localhost -p 2222 test -f /runcmd_successful ; do sleep 1; done"
 
 publish:
   stage: publish

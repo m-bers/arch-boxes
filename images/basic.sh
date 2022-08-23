@@ -7,8 +7,9 @@ PACKAGES=()
 SERVICES=()
 
 function pre() {
-  local NEWUSER="arch"
-  arch-chroot "${MOUNT}" /usr/bin/useradd -m -U "${NEWUSER}"
+  local NEWUSERFULLNAME="Archie"
+  local NEWUSER="${NEWUSERFULLNAME,,}"
+  arch-chroot "${MOUNT}" /usr/bin/useradd -m -U -c "${NEWUSERFULLNAME}" -- "${NEWUSER}"
   echo -e "${NEWUSER}\n${NEWUSER}" | arch-chroot "${MOUNT}" /usr/bin/passwd "${NEWUSER}"
   echo "${NEWUSER} ALL=(ALL) NOPASSWD: ALL" >"${MOUNT}/etc/sudoers.d/${NEWUSER}"
 
