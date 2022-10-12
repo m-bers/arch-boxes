@@ -46,16 +46,20 @@ trap cleanup EXIT
 # Create the disk, partitions it, format the partition and mount the filesystem
 function setup_disk() {
   truncate -s "${DEFAULT_DISK_SIZE}" "${IMAGE}"
-  sgdisk --clear \
-    --new 1::+1M --typecode=1:ef02 \
-    --new 2::-0 --typecode=2:8300 \
+  sgdisk --align-end \
+    --clear \
+    --new 0:0:+1M --typecode=0:ef02 --change-name=0:'BIOS boot partition' \
+    --new 0:0:+300M --typecode=0:ef00 --change-name=0:'EFI system partition' \
+    --new 0:0:0 --typecode=0:8304 --change-name=0:'Arch Linux' \
     "${IMAGE}"
 
   LOOPDEV=$(losetup --find --partscan --show "${IMAGE}")
   # Partscan is racy
   wait_until_settled "${LOOPDEV}"
-  mkfs.btrfs "${LOOPDEV}p2"
-  mount -o compress-force=zstd "${LOOPDEV}p2" "${MOUNT}"
+  mkfs.fat -F 32 -S 4096 "${LOOPDEV}p2"
+  mkfs.btrfs "${LOOPDEV}p3"
+  mount -o compress-force=zstd "${LOOPDEV}p3" "${MOUNT}"
+  mount --mkdir "${LOOPDEV}p2" "${MOUNT}/efi"
 }
 
 # Install Arch Linux to the filesystem (bootstrap)
@@ -76,7 +80,7 @@ EOF
   echo "Server = ${MIRROR}" >mirrorlist
 
   # We use the hosts package cache
-  pacstrap -c -C pacman.conf -M "${MOUNT}" base linux grub openssh sudo btrfs-progs reflector
+  pacstrap -c -C pacman.conf -M "${MOUNT}" base linux grub openssh sudo btrfs-progs dosfstools efibootmgr reflector
   cp mirrorlist "${MOUNT}/etc/pacman.d/"
 }
 
@@ -105,8 +109,8 @@ function image_cleanup() {
 function wait_until_settled() {
   udevadm settle
   blockdev --flushbufs --rereadpt "${1}"
-  until test -e "${1}p2"; do
-    echo "${1}p2 doesn't exist yet..."
+  until test -e "${1}p3"; do
+    echo "${1}p3 doesn't exist yet..."
     sleep 1
   done
 }
@@ -116,7 +120,7 @@ function mount_image() {
   LOOPDEV=$(losetup --find --partscan --show "${1:-${IMAGE}}")
   # Partscan is racy
   wait_until_settled "${LOOPDEV}"
-  mount -o compress-force=zstd "${LOOPDEV}p2" "${MOUNT}"
+  mount -o compress-force=zstd "${LOOPDEV}p3" "${MOUNT}"
   # Setup bind mount to package cache
   mount --bind "/var/cache/pacman/pkg" "${MOUNT}/var/cache/pacman/pkg"
 }
@@ -147,9 +151,9 @@ function create_image() {
   cp -a "${IMAGE}" "${tmp_image}"
   if [ -n "${DISK_SIZE}" ]; then
     truncate -s "${DISK_SIZE}" "${tmp_image}"
-    sgdisk --delete 2 "${tmp_image}"
-    sgdisk --move-second-header \
-      --new 2::-0 --typecode=2:8300 \
+    sgdisk --align-end --delete 3 "${tmp_image}"
+    sgdisk --align-end --move-second-header \
+      --new 0:0:0 --typecode=0:8304 --change-name=0:'Arch Linux' \
       "${tmp_image}"
   fi
   mount_image "${tmp_image}"
