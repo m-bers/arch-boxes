@@ -14,5 +14,9 @@ jobs:
         run: "bash prereqs.sh"
       - uses: actions/upload-artifact@v3
         with:
-          name: images
-          path: output
+          name: qcow2
+          path: output/*.qcow2
+      - uses: actions/upload-artifact@v3
+        with:
+          name: sha256
+          path: output/*.SHA256
