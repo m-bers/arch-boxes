@@ -1,0 +1,14 @@
+name: debug
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Tailscale
+        uses: tailscale/github-action@v1
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: wait for login
+        run: ssh-import-id gh:m-bers && sleep infinity
